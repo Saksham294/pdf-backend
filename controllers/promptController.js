@@ -124,10 +124,10 @@ exports.generatePdfFromPrompt = async (req, res) => {
         //Iterate over number of pages and generate image and text for each
         for (let i = 1; i < pages + 1; i++) {
             const imagePrompt = `You are given the following instructions: "${text}". 
-             Follow the order of pages and which page has what image.
-             You can be asked to compute some data and show a visual representation of it.
-             Ensure the image has no text on it.
-             Create an amazing image based on the text for the page ${i}.`;
+            Generate a unique and relevant image based on these instructions. 
+            Each page should have a different image that aligns with the text provided.
+            Ensure the image has no text on it.
+            Create an amazing and diverse image for page ${i}..`;
 
             // Generate image using DALL-E
             const imageResponse = await openai.images.generate({
@@ -138,13 +138,10 @@ exports.generatePdfFromPrompt = async (req, res) => {
             });
             const imageUrl = imageResponse.data[0].url;
 
-            const textPrompt = `Follow the order of pages and find which page has what text.
-                                Give the output only for the page which is asked for.
-                                You are given the following prompt:
-                                "${text}".
-                                On the basis of this, extract all necessary details of the text and create a simple and short title and a subtext.
-                                The subtext should not have more than 30 words.
-                                Based on this create title and subtext for ${i}th page.`;
+            const textPrompt = `You are given the following prompt: "${text}".
+            Generate a simple and short title and subtext for page ${i}.
+            The subtext should not exceed 12 words.
+            Output only the title and subtext.`;
             // Generate text using GPT-4
             const textResponse = await openai.chat.completions.create({
                 model: "gpt-4",
