@@ -12,25 +12,24 @@ async function createPdf(pages) {
         const pdfDoc = await PDFDocument.create();
         const boldFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
         const regularFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-        const fontColor = rgb(0,0,0);
-        
+        const styles = layoutStyles(rgb);
         for (let i = 0; i < pages.length; i++) {
             const { imageUrl, titleText, subtitleText } = pages[i];
-
+  
             // Fetch the image
             const response = await fetch(imageUrl);
             const imageBytes = await response.arrayBuffer();
-
+  
             // Create a new page with custom size
             const pageWidth = 550;
             const pageHeight = 550;
             const page = pdfDoc.addPage([pageWidth, pageHeight]);
-
+  
             // Embed the image
             const jpgImage = await pdfDoc.embedPng(imageBytes);
             let imgWidth = jpgImage.width;
             let imgHeight = jpgImage.height;
-
+  
             // Scale the image if it's too large
             const maxImgWidth = pageWidth - 40;
             const maxImgHeight = pageHeight - 200; // Reserve space for text
@@ -44,29 +43,30 @@ async function createPdf(pages) {
                 imgHeight = maxImgHeight;
                 imgWidth *= scale;
             }
-
+  
             // Define positions for image, title, and subtitle
-            let imageX, imageY, textX, textYTitle, textYSubtitle;
-
+            let imageX, imageY, textX, textYTitle, textYSubtitle,fontColor;
+  
             if (i === 0) {
                 // First page: Overlay text on the image
                 imageX = (pageWidth - imgWidth) / 2;
                 imageY = (pageHeight - imgHeight) / 2;
-
-                textX = imageX;
-                textYTitle = imageY + imgHeight - 50;
+                fontColor=rgb(0,0,0);
+                textX = imageX+20;
+                textYTitle = imageY + imgHeight +50;
                 textYSubtitle = textYTitle - 40;
             } else {
                 // If number of pages exceeds the number of layout styles, loop back to the first style using modulo operation
-                const style = layoutStyles[(i - 1) % layoutStyles.length](pageWidth, pageHeight, imgWidth, imgHeight);
-
+                const style = styles[(i - 1) % styles.length](pageWidth, pageHeight, imgWidth, imgHeight);
+  
                 imageX = style.imageX;
                 imageY = style.imageY;
                 textX = style.textX;
+                fontColor=style.fontColor;
                 textYTitle = style.textYTitle;
                 textYSubtitle = style.textYSubtitle;
             }
-
+  
             // Draw the image on the page
             page.drawImage(jpgImage, {
                 x: imageX,
@@ -74,11 +74,11 @@ async function createPdf(pages) {
                 width: imgWidth,
                 height: imgHeight
             });
-
+  
             // Add title text
             const fontSizeTitle = 30;
             const fontSizeSubtitle = 20;
-
+  
             page.drawText(titleText, {
                 x: textX,
                 y: textYTitle,
@@ -87,7 +87,7 @@ async function createPdf(pages) {
                 color: fontColor,
                 maxWidth: pageWidth - 40
             });
-
+  
             // Add subtitle text below the title
             page.drawText(subtitleText, {
                 x: textX,
@@ -98,17 +98,16 @@ async function createPdf(pages) {
                 maxWidth: pageWidth - 40
             });
         }
-
+  
         const pdfBytes = await pdfDoc.save();
-
+  
         // Save the PDF to a file
         fs.writeFileSync('output.pdf', pdfBytes);
         console.log('PDF created successfully');
     } catch (error) {
         console.error('Error creating PDF:', error);
     }
-}
-
+  }
 // Function to generate the image and text, then create the PDF
 exports.generatePdfFromPrompt = async (req, res) => {
     try {
@@ -126,6 +125,7 @@ exports.generatePdfFromPrompt = async (req, res) => {
         for (let i = 1; i < pages + 1; i++) {
             const imagePrompt = `You are given the following instructions: "${text}". 
              Follow the order of pages and which page has what image.
+             You can be asked to compute some data and show a visual representation of it.
              Ensure the image has no text on it.
              Create an amazing image based on the text for the page ${i}.`;
 
@@ -138,12 +138,13 @@ exports.generatePdfFromPrompt = async (req, res) => {
             });
             const imageUrl = imageResponse.data[0].url;
 
-            const textPrompt = `You are given the following prompt:
-                                "${text}".
-                                On the basis of this, extract all necessary details of the text.
-                                Follow the order of pages and find which page has what text.
+            const textPrompt = `Follow the order of pages and find which page has what text.
                                 Give the output only for the page which is asked for.
-                                Based on this create text for ${i}th page.`;
+                                You are given the following prompt:
+                                "${text}".
+                                On the basis of this, extract all necessary details of the text and create a simple and short title and a subtext.
+                                The subtext should not have more than 30 words.
+                                Based on this create title and subtext for ${i}th page.`;
             // Generate text using GPT-4
             const textResponse = await openai.chat.completions.create({
                 model: "gpt-4",
@@ -154,8 +155,10 @@ exports.generatePdfFromPrompt = async (req, res) => {
             // Extract title and subtitle from generated text
             let titleText = generatedText.split('\n')[0]; // Assuming the first line as title
             titleText = titleText.replace(/^title:\s*/i, '').trim()
+            titleText = titleText.replace(/"/g, '');
             let subtitleText = generatedText.split('\n').slice(1).join('\n'); // Rest as subtitle
             subtitleText = subtitleText.replace(/^subtitle:\s*/i, '').trim()
+            subtitleText = subtitleText.replace(/"/g, '');
             pagesArray.push({
                 page: i,
                 imageUrl,

@@ -1,9 +1,10 @@
-const layoutStyles = [
+const layoutStyles =(rgb)=> [
     // Style 1: Image on the left, text on the right
     (pageWidth, pageHeight, imgWidth, imgHeight) => ({
         imageX: 20,
         imageY: (pageHeight - imgHeight) / 2,
         textX: imgWidth + 40,
+        fontColor:rgb(0,0,0),
         textYTitle: pageHeight - 80,
         textYSubtitle: pageHeight - 120
     }),
@@ -12,6 +13,7 @@ const layoutStyles = [
         imageX: pageWidth - imgWidth - 20,
         imageY: (pageHeight - imgHeight) / 2,
         textX: 20,
+        fontColor:rgb(0,0,0),
         textYTitle: pageHeight - 80,
         textYSubtitle: pageHeight - 120
     }),
@@ -20,6 +22,7 @@ const layoutStyles = [
         imageX: (pageWidth - imgWidth) / 2,
         imageY: pageHeight - imgHeight - 20,
         textX: 20,
+        fontColor:rgb(0,0,0),
         textYTitle: pageHeight - imgHeight - 40,
         textYSubtitle: pageHeight - imgHeight - 80
     }),
@@ -28,6 +31,7 @@ const layoutStyles = [
         imageX: (pageWidth - imgWidth) / 2,
         imageY: 20,
         textX: 20,
+        fontColor:rgb(0,0,0),
         textYTitle: pageHeight - 150,
         textYSubtitle: pageHeight - 190
     }),
@@ -36,6 +40,7 @@ const layoutStyles = [
         imageX: (pageWidth - imgWidth) / 2,
         imageY: (pageHeight - imgHeight) / 2,
         textX: (pageWidth - imgWidth) / 2 + 20,
+        fontColor: rgb(1, 1, 1),
         textYTitle: (pageHeight + imgHeight) / 2 - 50,
         textYSubtitle: (pageHeight + imgHeight) / 2 - 90
     })
